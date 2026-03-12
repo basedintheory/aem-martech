@@ -5,43 +5,43 @@
     {
       "title": "Add preload and preconnect hints to head.html",
       "description": "Add three resource hints at the end of head.html: (1) <link rel=\"preload\" as=\"script\" crossorigin=\"anonymous\" href=\"/plugins/martech/src/index.js\"/> (2) <link rel=\"preload\" as=\"script\" crossorigin=\"anonymous\" href=\"/plugins/martech/src/alloy.min.js\"/> (3) <link rel=\"preconnect\" href=\"https://edge.adobedc.net\"/>. These ensure early browser fetching of plugin scripts and establish an early connection to Adobe Edge Network without blocking page rendering.",
-      "priority": "high",
+      "priority": "critical",
       "assignee": "agent:system"
     },
     {
       "title": "Import martech functions in scripts.js",
       "description": "Add the following import statement at the top of scripts/scripts.js with the other imports: import { initMartech, updateUserConsent, martechEager, martechLazy, martechDelayed } from '../plugins/martech/src/index.js'; Note the relative path from the scripts directory to the plugins directory.",
-      "priority": "high",
+      "priority": "critical",
       "assignee": "agent:system"
     },
     {
-      "title": "Add martech configuration objects to scripts.js",
-      "description": "Add two module-level configuration constants to scripts/scripts.js before the loadEager function. First, webSDKConfig with: datastreamId set to 'DATASTREAM_ID_HERE', orgId set to 'IMS_ORG_ID_HERE', edgeDomain set to 'edge.adobedc.net', and defaultConsent set to 'in'. Second, martechConfig with: analytics set to true, personalization set to false, personalizationTimeout set to 3000, dataLayer set to empty object, launchUrls set to empty array, and trackPageView set to true. The placeholder values for datastreamId and orgId will be replaced by the user in a later task.",
-      "priority": "high",
+      "title": "Add martech configuration and wire initMartech into loadEager",
+      "description": "In scripts/scripts.js, call initMartech at the top of the loadEager function with two arguments: the WebSDK configuration object (datastreamId set to 'DATASTREAM_ID_HERE', orgId set to 'IMS_ORG_ID_HERE', with optional onBeforeEventSend callback and edgeConfigOverrides) and the library configuration object (personalization gated by getMetadata('target') and consent, launchUrls as empty array). Store the returned promise in a variable called martechLoadedPromise. The placeholder values for datastreamId and orgId will be replaced by the user in a later task.",
+      "priority": "critical",
       "assignee": "agent:system"
     },
     {
-      "title": "Wire initMartech into loadEager function",
-      "description": "In the loadEager function of scripts/scripts.js, call initMartech(webSDKConfig, martechConfig) at the beginning of the function before any section loading. Store the returned promise in a variable called martechLoadedPromise. Then modify the section-loading block so that personalization resolves before the first section renders: use await Promise.all([martechLoadedPromise.then(martechEager), loadSection(main.querySelector('.section'), waitForFirstImage)]) to run personalization and first-section loading in parallel, preventing flash of original content.",
-      "priority": "high",
+      "title": "Wait for personalization in loadEager",
+      "description": "In the loadEager function of scripts/scripts.js, modify the section-loading block so that personalization resolves alongside the first section render. Use await Promise.all([martechLoadedPromise.then(martechEager), loadSection(main.querySelector('.section'), waitForFirstImage)]) inside the if (main) block after decorateMain(main) and document.body.classList.add('appear'). This runs personalization and first-section loading in parallel, preventing flash of original content when personalization is enabled.",
+      "priority": "critical",
       "assignee": "agent:system"
     },
     {
       "title": "Add martechLazy call to loadLazy function",
       "description": "In the loadLazy function of scripts/scripts.js, add await martechLazy() after the existing lazy-loading logic (e.g. after loadFooter). This triggers the analytics beacon setup and fires deferred analytics events. Await it independently — do not wrap it in Promise.all with other operations, as sequential processing is required for correct event handling.",
-      "priority": "high",
+      "priority": "critical",
       "assignee": "agent:system"
     },
     {
       "title": "Add martechDelayed call to loadDelayed function",
       "description": "In the loadDelayed function of scripts/scripts.js, add a call to martechDelayed() within the existing setTimeout wrapper alongside other delayed operations like import('./delayed.js'). This loads any third-party tag manager scripts specified in the launchUrls configuration array during the delayed phase, after the page is fully interactive.",
-      "priority": "high",
+      "priority": "critical",
       "assignee": "agent:system"
     },
     {
       "title": "Configure Adobe Experience Platform credentials",
       "description": "Replace the placeholder values in the webSDKConfig object in scripts/scripts.js. Set datastreamId to your Adobe Experience Platform datastream ID and orgId to your Adobe IMS Organization ID (format: XXXXX@AdobeOrg). These values are found in the Adobe Experience Platform Data Collection UI under Datastreams. Without valid credentials, no analytics data or personalization will be sent to Adobe.",
-      "priority": "critical",
+      "priority": "high",
       "assignee": "user"
     },
     {
@@ -53,13 +53,13 @@
     {
       "title": "Configure Launch container URLs (optional)",
       "description": "If you have existing Adobe Launch (Tags) containers you want to load, add the container script URLs to the martechConfig.launchUrls array. These scripts are loaded in the delayed phase via martechDelayed(). This is optional and only needed for backward compatibility with existing Launch tag rules. Skip this task if you have no existing Launch containers.",
-      "priority": "low",
+      "priority": "medium",
       "assignee": "user"
     },
     {
       "title": "Merge plugin branch to main",
-      "description": "Review all changes on the plugin/aem-martech branch and merge into main via pull request. Before merging, verify: (1) head.html has the three preload/preconnect hints, (2) scripts.js imports martech functions and has configuration objects, (3) loadEager/loadLazy/loadDelayed call the appropriate martech lifecycle functions, (4) datastreamId and orgId have been replaced with real values.",
-      "priority": "high",
+      "description": "Review all changes on the plugin/aem-martech branch and merge into main via pull request. Before merging, verify: (1) head.html has the three preload/preconnect hints, (2) scripts.js imports martech functions and calls initMartech with config, (3) loadEager waits for personalization with Promise.all, (4) loadLazy awaits martechLazy, (5) loadDelayed calls martechDelayed in setTimeout, (6) datastreamId and orgId have been replaced with real values.",
+      "priority": "low",
       "assignee": "user"
     }
   ]
